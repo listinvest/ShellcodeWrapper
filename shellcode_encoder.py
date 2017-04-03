@@ -15,12 +15,14 @@ import os
 
 templates = {
 	'cpp': './templates/encryptedShellcodeWrapper.cpp',
+	'go': './templates/encryptedShellcodeWrapper.go',
 	'csharp': './templates/encryptedShellcodeWrapper.cs',
 	'python': './templates/encryptedShellcodeWrapper.py'
 }
 
 resultFiles = {
 	'cpp': './result/encryptedShellcodeWrapper.cpp',
+	'go': './result/encryptedShellcodeWrapper.go',
 	'csharp': './result/encryptedShellcodeWrapper.cs',
 	'python': './result/encryptedShellcodeWrapper.py'
 }
@@ -95,6 +97,23 @@ def formatCPP(data, key, cipherType):
 
 #------------------------------------------------------------------------
 # data as a bytearray
+def formatGo(data, key, cipherType):
+	shellcode = "0x"
+	shellcode += ",0x".join(format(ord(b),'02x') for b in data)
+	result = convertFromTemplate({'shellcode': shellcode, 'key': key, 'cipherType': cipherType}, templates['go'])
+
+	if result != None:
+		try:
+			fileName = os.path.splitext(resultFiles['go'])[0] + "_" + cipherType + os.path.splitext(resultFiles['go'])[1]
+			with open(fileName,"w+") as f:
+				f.write(result)
+				f.close()
+				print color("[+] Go code file saved in [{}]".format(fileName))
+		except IOError:
+			print color("[!] Could not write Go code  [{}]".format(fileName))
+
+#------------------------------------------------------------------------
+# data as a bytearray
 def formatCSharp(data, key, cipherType):
 	shellcode = '0x'
 	shellcode += ',0x'.join(format(ord(b),'02x') for b in data)
@@ -142,11 +161,11 @@ def color(string, color=None):
     Author: HarmJ0y, borrowed from Empire
     Change text color for the Linux terminal.
     """
-    
+
     attr = []
     # bold
     attr.append('1')
-    
+
     if color:
         if color.lower() == "red":
             attr.append('31')
@@ -184,6 +203,7 @@ if __name__ == '__main__':
 	parser.add_argument("encryptionType", help="Encryption algorithm to apply to the shellcode", choices=['xor','aes'])
 	parser.add_argument("-b64", "--base64", help="Display transformed shellcode as base64 encoded string", action="store_true")
 	parser.add_argument("-cpp", "--cplusplus", help="Generates C++ file code", action="store_true")
+	parser.add_argument("-go", "--golang", help="Generates Go file code", action="store_true")
 	parser.add_argument("-cs", "--csharp", help="Generates C# file code", action="store_true")
 	parser.add_argument("-py", "--python", help="Generates Python file code", action="store_true")
 	args = parser.parse_args() 
@@ -233,15 +253,19 @@ if __name__ == '__main__':
 	#------------------------------------------------------------------------
 	# Display formated output
 	if args.base64:
-		print color("[*] Transformed shellcode as a base64 encoded string")		
+		print color("[*] Transformed shellcode as a base64 encoded string")
 		print formatB64(transformedShellcode)
 		print ""
-	
+
 	if args.cplusplus:
 		print color("[*] Generating C++ code file")
 		formatCPP(transformedShellcode, masterKey, cipherType)
 		print ""
-		
+
+	if args.golang:
+		print color("[*] Generating Go code file")
+		formatGo(transformedShellcode, masterKey, cipherType)
+		print ""
 
 	if args.csharp:
 		print color("[*] Generating C# code file")
